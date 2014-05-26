@@ -17,3 +17,7 @@ RUN rpm -ivh /root/rpmbuild/RPMS/x86_64/python27-opt-libs-2.7.6-7br.x86_64.rpm
 RUN rpm -ivh /root/rpmbuild/RPMS/x86_64/python27-opt-2.7.6-7br.x86_64.rpm
 RUN rpm -ivh /root/rpmbuild/RPMS/x86_64/tkinter27-2.7.6-7br.x86_64.rpm
 RUN rpm -ivh /root/rpmbuild/RPMS/x86_64/python27-opt-devel-2.7.6-7br.x86_64.rpm
+RUN /opt/python2.7.5/bin/python2.7 -c 'import ssl'
+RUN /opt/python2.7.5/bin/python2.7 -c 'import zlib'
+RUN /opt/python2.7.5/bin/python2.7 -c 'import crypt'
+RUN /opt/python2.7.5/bin/python2.7 -c 'import gzip'
