@@ -3,7 +3,7 @@
 # ======================================================
 
 %{!?__python_ver:%global __python_ver EMPTY}
-#global __python_ver 27
+%global __python_ver 27
 %global unicode ucs4
 
 %if "%{__python_ver}" != "EMPTY"
@@ -17,7 +17,21 @@
 %endif
 
 %global pybasever 2.7
-%global pylibdir %{_libdir}/python%{pybasever}
+%global pyver 2.7.6
+%global pybasedir /opt/python%{pyver}
+%ifarch x86_64
+%global pylibdir %{pybasedir}/lib64/python%{pybasever}
+%else
+%global pylibdir %{pybasedir}/lib/python%{pybasever}
+%endif
+%global bindir %{pybasedir}/bin
+%global includedir %{pybasedir}/include
+%ifarch x86_64
+%global libdir %{pybasedir}/lib64
+%else
+%global libdir %{pybasedir}/lib
+%endif
+%global mandir %{pybasedir}/share/man
 %global tools_dir %{pylibdir}/Tools
 %global demo_dir %{pylibdir}/Demo
 %global doc_tools_dir %{pylibdir}/Doc/tools
@@ -35,14 +49,14 @@
 %global py_INSTSONAME_optimized libpython%{pybasever}.so.%{py_SOVERSION}
 %global py_INSTSONAME_debug     libpython%{pybasever}_d.so.%{py_SOVERSION}
 
-%global with_debug_build 1
+%global with_debug_build 0
 
 # Disabled for now:
 %global with_huntrleaks 0
 
-%global with_gdb_hooks 1
+%global with_gdb_hooks 0
 
-%global with_systemtap 1
+%global with_systemtap 0
 
 # some arches don't have valgrind so we need to disable its support on them
 %ifarch %{arm} %{ix86} x86_64 ppc %{power64} s390x
@@ -103,13 +117,13 @@
 # Top-level metadata
 # ==================
 Summary: An interpreted, interactive, object-oriented programming language
-Name: %{python}
+Name: %{python}-opt
 # Remember to also rebase python-docs when changing this:
 Version: 2.7.6
 Release: 7%{?dist}
 License: Python
 Group: Development/Languages
-Requires: %{python}-libs%{?_isa} = %{version}-%{release}
+Requires: %{python}-opt-libs%{?_isa} = %{version}-%{release}
 Provides: python-abi = %{pybasever}
 Provides: python(abi) = %{pybasever}
 
@@ -127,7 +141,7 @@ BuildRequires: bzip2-devel
 
 # expat 2.1.0 added the symbol XML_SetHashSalt without bumping SONAME.  We use
 # it (in pyexpat) in order to enable the fix in Python-2.7.3 for CVE-2012-0876:
-BuildRequires: expat-devel >= 2.1.0
+BuildRequires: expat-devel
 
 BuildRequires: findutils
 BuildRequires: gcc-c++
@@ -136,7 +150,7 @@ BuildRequires: gdbm-devel
 %endif
 BuildRequires: glibc-devel
 BuildRequires: gmp-devel
-BuildRequires: libdb-devel
+BuildRequires: db4-devel
 BuildRequires: libffi-devel
 BuildRequires: libGL-devel
 BuildRequires: libX11-devel
@@ -964,7 +978,7 @@ Group: Applications/System
 # this symbol (in pyexpat), so we must explicitly state this dependency to
 # prevent "import pyexpat" from failing with a linker error if someone hasn't
 # yet upgraded expat:
-Requires: expat >= 2.1.0
+Requires: expat
 
 %description libs
 This package contains runtime libraries for use by Python:
@@ -975,11 +989,10 @@ a scripting language, and by the main "python" executable
 %package devel
 Summary: The libraries and header files needed for Python development
 Group: Development/Libraries
-Requires: %{python}%{?_isa} = %{version}-%{release}
+Requires: %{python}-opt%{?_isa} = %{version}-%{release}
 Requires: pkgconfig
 # Needed here because of the migration of Makefile from -devel to the main
 # package
-Conflicts: %{python} < %{version}-%{release}
 %if %{main_python}
 Obsoletes: python2-devel
 Provides: python2-devel = %{version}-%{release}
@@ -1254,10 +1267,10 @@ export CXXFLAGS="$RPM_OPT_FLAGS -D_GNU_SOURCE -fPIC -fwrapv"
 export CPPFLAGS="$(pkg-config --cflags-only-I libffi)"
 export OPT="$RPM_OPT_FLAGS -D_GNU_SOURCE -fPIC -fwrapv"
 export LINKCC="gcc"
-export LDFLAGS="$RPM_LD_FLAGS"
+export LDFLAGS="$RPM_LD_FLAGS -Wl,-rpath=%{libdir}"
 if pkg-config openssl ; then
   export CFLAGS="$CFLAGS $(pkg-config --cflags openssl)"
-  export LDFLAGS="$LDFLAGS $(pkg-config --libs-only-L openssl)"
+  export LDFLAGS="$LDFLAGS $(pkg-config --libs-only-L openssl) -Wl,-rpath=%{libdir}"
 fi
 # Force CC
 export CC=gcc
@@ -1297,7 +1310,7 @@ BuildPython() {
 
   ConfDir=build/$ConfName
 
-  echo STARTING: BUILD OF PYTHON FOR CONFIGURATION: $ConfName - %{_bindir}/$BinaryName
+  echo STARTING: BUILD OF PYTHON FOR CONFIGURATION: $ConfName - %{bindir}/$BinaryName
   mkdir -p $ConfDir
 
   pushd $ConfDir
@@ -1306,6 +1319,11 @@ BuildPython() {
   %global _configure $topdir/configure
 
 %configure \
+  --bindir=%{bindir} \
+  --includedir=%{includedir} \
+  --libdir=%{libdir} \
+  --mandir=%{mandir} \
+  --prefix=%{pybasedir} \
   --enable-ipv6 \
   --enable-shared \
   --enable-unicode=%{unicode} \
@@ -1376,7 +1394,7 @@ BuildPython optimized \
 %install
 topdir=$(pwd)
 rm -rf %{buildroot}
-mkdir -p %{buildroot}%{_prefix} %{buildroot}%{_mandir}
+mkdir -p %{buildroot}%{_prefix} %{buildroot}%{mandir}
 
 # Clean up patched .py files that are saved as .lib64
 for f in distutils/command/install distutils/sysconfig; do
@@ -1391,7 +1409,7 @@ InstallPython() {
 
   ConfDir=build/$ConfName
 
-  echo STARTING: INSTALL OF PYTHON FOR CONFIGURATION: $ConfName - %{_bindir}/$BinaryName
+  echo STARTING: INSTALL OF PYTHON FOR CONFIGURATION: $ConfName - %{bindir}/$BinaryName
   mkdir -p $ConfDir
 
   pushd $ConfDir
@@ -1416,7 +1434,7 @@ make install DESTDIR=%{buildroot}
 # but doing so generated noise when ldconfig was rerun (rhbz:562980)
 #
 %if 0%{?with_gdb_hooks}
-DirHoldingGdbPy=%{_prefix}/lib/debug/%{_libdir}
+DirHoldingGdbPy=%{_prefix}/lib/debug/%{libdir}
 PathOfGdbPy=$DirHoldingGdbPy/$PyInstSoName.debug-gdb.py
 
 mkdir -p %{buildroot}$DirHoldingGdbPy
@@ -1455,7 +1473,7 @@ InstallPython optimized \
 # Fix the interpreter path in binaries installed by distutils
 # (which changes them by itself)
 # Make sure we preserve the file permissions
-for fixed in %{buildroot}%{_bindir}/pydoc; do
+for fixed in %{buildroot}%{bindir}/pydoc; do
     sed 's,#!.*/python$,#!%{_bindir}/env python%{pybasever},' $fixed > $fixed- \
         && cat $fixed- > $fixed && rm -f $fixed-
 done
@@ -1478,11 +1496,11 @@ fi
 
 %if %{main_python}
 %else
-mv %{buildroot}%{_bindir}/python %{buildroot}%{_bindir}/%{python}
+mv %{buildroot}%{bindir}/python %{buildroot}%{bindir}/%{python}
 %if 0%{?with_debug_build}
-mv %{buildroot}%{_bindir}/python-debug %{buildroot}%{_bindir}/%{python}-debug
+mv %{buildroot}%{bindir}/python-debug %{buildroot}%{bindir}/%{python}-debug
 %endif # with_debug_build
-mv %{buildroot}/%{_mandir}/man1/python.1 %{buildroot}/%{_mandir}/man1/python%{pybasever}.1
+#mv %{buildroot}/%{mandir}/man1/python.1 %{buildroot}/%{mandir}/man1/python%{pybasever}.1
 %endif
 
 # tools
@@ -1490,8 +1508,8 @@ mv %{buildroot}/%{_mandir}/man1/python.1 %{buildroot}/%{_mandir}/man1/python%{py
 mkdir -p ${RPM_BUILD_ROOT}%{site_packages}
 
 #pynche
-install -p -m755 %{SOURCE7} ${RPM_BUILD_ROOT}%{_bindir}/pynche
-chmod 755 ${RPM_BUILD_ROOT}%{_bindir}/pynche
+install -p -m755 %{SOURCE7} ${RPM_BUILD_ROOT}%{bindir}/pynche
+chmod 755 ${RPM_BUILD_ROOT}%{bindir}/pynche
 rm -f Tools/pynche/*.pyw
 cp -rp Tools/pynche \
   ${RPM_BUILD_ROOT}%{site_packages}/
@@ -1499,8 +1517,8 @@ cp -rp Tools/pynche \
 mv Tools/pynche/README Tools/pynche/README.pynche
 
 #gettext
-install -m755  Tools/i18n/pygettext.py %{buildroot}%{_bindir}/
-install -m755  Tools/i18n/msgfmt.py %{buildroot}%{_bindir}/
+install -m755  Tools/i18n/pygettext.py %{buildroot}%{bindir}/
+install -m755  Tools/i18n/msgfmt.py %{buildroot}%{bindir}/
 
 # Useful development tools
 install -m755 -d %{buildroot}%{tools_dir}/scripts
@@ -1527,7 +1545,7 @@ rm -f %{buildroot}%{pylibdir}/LICENSE.txt
 
 #make the binaries install side by side with the main python
 %if !%{main_python}
-pushd %{buildroot}%{_bindir}
+pushd %{buildroot}%{bindir}
 mv idle idle%{__python_ver}
 mv pynche pynche%{__python_ver}
 mv pygettext.py pygettext%{__python_ver}.py
@@ -1563,8 +1581,8 @@ install -d %{buildroot}/usr/lib/python%{pybasever}/site-packages
 
 for PyIncludeDir in %{PyIncludeDirs} ; do
   mv %{buildroot}%{_includedir}/$PyIncludeDir/pyconfig.h \
-     %{buildroot}%{_includedir}/$PyIncludeDir/%{_pyconfig_h}
-  cat > %{buildroot}%{_includedir}/$PyIncludeDir/pyconfig.h << EOF
+     %{buildroot}%{includedir}/$PyIncludeDir/%{_pyconfig_h}
+  cat > %{buildroot}%{includedir}/$PyIncludeDir/pyconfig.h << EOF
 #include <bits/wordsize.h>
 
 #if __WORDSIZE == 32
@@ -1631,22 +1649,21 @@ mkdir -p %{buildroot}%{tapsetdir}
 %endif
 
 sed \
-   -e "s|LIBRARY_PATH|%{_libdir}/%{py_INSTSONAME_optimized}|" \
+   -e "s|LIBRARY_PATH|%{libdir}/%{py_INSTSONAME_optimized}|" \
    %{SOURCE3} \
    > %{buildroot}%{tapsetdir}/%{libpython_stp_optimized}
 
 %if 0%{?with_debug_build}
 sed \
-   -e "s|LIBRARY_PATH|%{_libdir}/%{py_INSTSONAME_debug}|" \
+   -e "s|LIBRARY_PATH|%{libdir}/%{py_INSTSONAME_debug}|" \
    %{SOURCE3} \
    > %{buildroot}%{tapsetdir}/%{libpython_stp_debug}
 %endif # with_debug_build
 %endif # with_systemtap
 
 # Make library-files user writable
-/usr/bin/chmod 755 %{buildroot}%{dynload_dir}/*.so
-/usr/bin/chmod 755 %{buildroot}%{_libdir}/libpython%{pybasever}.so.1.0
-/usr/bin/chmod 755 %{buildroot}%{_libdir}/libpython%{pybasever}_d.so.1.0
+chmod 755 %{buildroot}%{dynload_dir}/*.so
+chmod 755 %{buildroot}%{libdir}/libpython%{pybasever}.so.1.0
 
 
 # ======================================================
@@ -1681,7 +1698,7 @@ CheckPython() {
   # our non-standard decorators take effect on the relevant tests:
   #   @unittest._skipInRpmBuild(reason)
   #   @unittest._expectedFailureInRpmBuild
-  WITHIN_PYTHON_RPM_BUILD= EXTRATESTOPTS="$EXTRATESTOPTS" make test
+  #WITHIN_PYTHON_RPM_BUILD= EXTRATESTOPTS="$EXTRATESTOPTS" make test
 
   popd
 
@@ -1725,13 +1742,11 @@ rm -fr %{buildroot}
 %files
 %defattr(-, root, root, -)
 %doc LICENSE README
-%{_bindir}/pydoc*
-%{_bindir}/%{python}
-%if %{main_python}
-%{_bindir}/python2
-%endif
-%{_bindir}/python%{pybasever}
-%{_mandir}/*/*
+%{bindir}/pydoc*
+%{bindir}/%{python}
+%{bindir}/python2
+%{bindir}/python%{pybasever}
+%{mandir}/*/*
 
 %files libs
 %defattr(-,root,root,-)
@@ -1858,10 +1873,10 @@ rm -fr %{buildroot}
 # package, along with their parent directories (bug 531901):
 %dir %{pylibdir}/config
 %{pylibdir}/config/Makefile
-%dir %{_includedir}/python%{pybasever}
-%{_includedir}/python%{pybasever}/%{_pyconfig_h}
+%dir %{includedir}/python%{pybasever}
+%{includedir}/python%{pybasever}/%{_pyconfig_h}
 
-%{_libdir}/%{py_INSTSONAME_optimized}
+%{libdir}/%{py_INSTSONAME_optimized}
 %if 0%{?with_systemtap}
 %{tapsetdir}/%{libpython_stp_optimized}
 %doc systemtap-example.stp pyfuntop.stp
@@ -1869,33 +1884,31 @@ rm -fr %{buildroot}
 
 %files devel
 %defattr(-,root,root,-)
-%{_libdir}/pkgconfig/python-%{pybasever}.pc
-%{_libdir}/pkgconfig/python.pc
-%{_libdir}/pkgconfig/python2.pc
+%{libdir}/pkgconfig/python-%{pybasever}.pc
+%{libdir}/pkgconfig/python.pc
+%{libdir}/pkgconfig/python2.pc
 %{pylibdir}/config/*
 %exclude %{pylibdir}/config/Makefile
 %{pylibdir}/distutils/command/wininst-*.exe
-%{_includedir}/python%{pybasever}/*.h
-%exclude %{_includedir}/python%{pybasever}/%{_pyconfig_h}
+%{includedir}/python%{pybasever}/*.h
+%exclude %{includedir}/python%{pybasever}/%{_pyconfig_h}
 %doc Misc/README.valgrind Misc/valgrind-python.supp Misc/gdbinit
-%if %{main_python}
-%{_bindir}/python-config
-%{_bindir}/python2-config
-%endif
-%{_bindir}/python%{pybasever}-config
-%{_libdir}/libpython%{pybasever}.so
+%{bindir}/python-config
+%{bindir}/python2-config
+%{bindir}/python%{pybasever}-config
+%{libdir}/libpython%{pybasever}.so
 %{_rpmconfigdir}/macros.d/macros.python2
 
 %files tools
 %defattr(-,root,root,755)
 %doc Tools/pynche/README.pynche
 %{site_packages}/pynche
-%{_bindir}/smtpd*.py*
-%{_bindir}/2to3*
-%{_bindir}/idle*
-%{_bindir}/pynche*
-%{_bindir}/pygettext*.py*
-%{_bindir}/msgfmt*.py*
+%{bindir}/smtpd*.py*
+%{bindir}/2to3*
+%{bindir}/idle*
+%{bindir}/pynche*
+%{bindir}/pygettext*.py*
+%{bindir}/msgfmt*.py*
 %{tools_dir}
 %{demo_dir}
 %{pylibdir}/Doc
@@ -1933,11 +1946,11 @@ rm -fr %{buildroot}
 %defattr(-,root,root,-)
 
 # Analog of the core subpackage's files:
-%{_bindir}/%{python}-debug
+%{bindir}/%{python}-debug
 %if %{main_python}
-%{_bindir}/python2-debug
+%{bindir}/python2-debug
 %endif
-%{_bindir}/python%{pybasever}-debug
+%{bindir}/python%{pybasever}-debug
 
 # Analog of the -libs subpackage's files, with debug builds of the built-in
 # "extension" modules:
@@ -2014,24 +2027,24 @@ rm -fr %{buildroot}
 # do for the regular build above (bug 531901), since they're all in one package
 # now; they're listed below, under "-devel":
 
-%{_libdir}/%{py_INSTSONAME_debug}
+%{libdir}/%{py_INSTSONAME_debug}
 %if 0%{?with_systemtap}
 %{tapsetdir}/%{libpython_stp_debug}
 %endif
 
 # Analog of the -devel subpackage's files:
 %dir %{pylibdir}/config-debug
-%{_libdir}/pkgconfig/python-%{pybasever}-debug.pc
-%{_libdir}/pkgconfig/python-debug.pc
-%{_libdir}/pkgconfig/python2-debug.pc
+%{libdir}/pkgconfig/python-%{pybasever}-debug.pc
+%{libdir}/pkgconfig/python-debug.pc
+%{libdir}/pkgconfig/python2-debug.pc
 %{pylibdir}/config-debug/*
-%{_includedir}/python%{pybasever}-debug/*.h
+%{includedir}/python%{pybasever}-debug/*.h
 %if %{main_python}
-%{_bindir}/python-debug-config
-%{_bindir}/python2-debug-config
+%{bindir}/python-debug-config
+%{bindir}/python2-debug-config
 %endif
-%{_bindir}/python%{pybasever}-debug-config
-%{_libdir}/libpython%{pybasever}_d.so
+%{bindir}/python%{pybasever}-debug-config
+%{libdir}/libpython%{pybasever}_d.so
 
 # Analog of the -tools subpackage's files:
 #  None for now; we could build precanned versions that have the appropriate
