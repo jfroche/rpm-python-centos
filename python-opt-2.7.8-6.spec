@@ -17,7 +17,7 @@
 %endif
 
 %global pybasever 2.7
-%global pyver 2.7.7
+%global pyver 2.7.8
 %global pybasedir /opt/python%{pyver}
 %ifarch x86_64
 %global pylibdir %{pybasedir}/lib64/python%{pybasever}
