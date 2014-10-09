@@ -1687,7 +1687,6 @@ sed \
 # Make library-files user writable
 chmod 755 %{buildroot}%{dynload_dir}/*.so
 chmod 755 %{buildroot}%{libdir}/libpython%{pybasever}.so.1.0
-chmod 755 %{buildroot}%{libdir}/libpython%{pybasever}_d.so.1.0
 
 
 # ======================================================
