@@ -4,8 +4,8 @@
 # simplifying Python 3.4 bootstraping process
 %global build_wheel 0
 %else
-%global python27 /opt/python2.7.7/bin/python2.7
-%global pyver 2.7.7
+%global python27 /opt/python2.7.8/bin/python2.7
+%global pyver 2.7.8
 %global pybasedir /opt/python%{pyver}
 %global bindir %{pybasedir}/bin
 %global python_sitelib %(%{python27} -c "from distutils.sysconfig import get_python_lib; print (get_python_lib())")
@@ -22,7 +22,7 @@
 
 Name:           python27-opt-setuptools
 Version:        2.0
-Release:        2%{?dist}
+Release:        8%{?dist}
 Summary:        Easily build and distribute Python packages
 
 Group:          Applications/System
@@ -204,6 +204,25 @@ rm -rf %{buildroot}
 %endif # with_python3
 
 %changelog
+* Mon Jun 30 2014 Toshio Kuratomi <toshio@fedoraproject.org> - 2.0-8
+- Remove the python-setuptools-devel Virtual Provides as per this Fedora 21
+  Change: http://fedoraproject.org/wiki/Changes/Remove_Python-setuptools-devel
+
+* Mon Jun 30 2014 Toshio Kuratomi <toshio@fedoraproject.org> - 2.0-7
+- And another bug in sdist
+
+* Mon Jun 30 2014 Toshio Kuratomi <toshio@fedoraproject.org> - 2.0-6
+- Fix a bug in the sdist command
+
+* Sat Jun 07 2014 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 2.0-5
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_21_Mass_Rebuild
+
+* Fri Apr 25 2014 Matej Stuchlik <mstuchli@redhat.com> - 2.0-4
+- Rebuild as wheel for Python 3.4
+
+* Thu Apr 24 2014 Tomas Radej <tradej@redhat.com> - 2.0-3
+- Rebuilt for tag f21-python
+
 * Wed Apr 23 2014 Matej Stuchlik <mstuchli@redhat.com> - 2.0-2
 - Add a switch to build setuptools as wheel
 
