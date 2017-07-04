@@ -95,6 +95,7 @@ documentation.
 %{__rm} -f $RPM_BUILD_ROOT%{_prefix}/bin/pydoc
 %{__rm} -f $RPM_BUILD_ROOT%{_prefix}/bin/smtpd.py
 %{__rm} -rf $RPM_BUILD_ROOT%{_libdir}/pkgconfig/
+%{__rm} -rf $RPM_BUILD_ROOT%{_mandir}
 
 %{__ln_s} %{_exec_prefix}/lib/python2.4/config $RPM_BUILD_ROOT%{_prefix}/lib/python2.4/config
 %{__ln_s} %{_exec_prefix}/lib/python2.4/lib-dynload $RPM_BUILD_ROOT%{_prefix}/lib/python2.4/lib-dynload
@@ -114,7 +115,6 @@ mkdir -p $RPM_BUILD_ROOT/etc/ld.so.conf.d
 %defattr(-,root,root,-)
 %{_prefix}/lib/python2.4/*
 %{_bindir}/python2.4*
-%{_prefix}/share/man/man1/python.1
 
 %doc
 
