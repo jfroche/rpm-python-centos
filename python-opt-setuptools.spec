@@ -4,11 +4,11 @@
 # simplifying Python 3.4 bootstraping process
 %global build_wheel 0
 %else
-%global python27 /opt/python2.7.8/bin/python2.7
-%global pyver 2.7.8
+%global python24 /opt/python2.4.6/bin/python2.4
+%global pyver 2.4.6
 %global pybasedir /opt/python%{pyver}
 %global bindir %{pybasedir}/bin
-%global python_sitelib %(%{python27} -c "from distutils.sysconfig import get_python_lib; print (get_python_lib())")
+%global python_sitelib %(%{python24} -c "from distutils.sysconfig import get_python_lib; print (get_python_lib())")
 %endif
 %global srcname setuptools
 %if 0%{?build_wheel}
@@ -20,8 +20,8 @@
 %endif
 %endif
 
-Name:           python27-opt-setuptools
-Version:        2.0
+Name:           python24-opt-setuptools
+Version:        0.6c11
 Release:        8%{?dist}
 Summary:        Easily build and distribute Python packages
 
@@ -29,14 +29,12 @@ Group:          Applications/System
 License:        Python or ZPLv2.0
 URL:            http://pypi.python.org/pypi/%{srcname}
 Source0:        http://pypi.python.org/packages/source/s/%{srcname}/%{srcname}-%{version}.tar.gz
-Source1:        psfl.txt
-Source2:        zpl.txt
 
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 BuildArch:      noarch
 # Require this so that we use a system copy of the match_hostname() function
-BuildRequires:  python27-opt-devel
+BuildRequires:  python24-opt-devel
 %if 0%{?build_wheel}
 BuildRequires:  python-pip
 BuildRequires:  python-wheel
@@ -108,14 +106,14 @@ popd
 %endif # with_python3
 
 for file in setuptools/command/easy_install.py ; do
-    sed -i '1s|^#!python|#!%{python27}|' $file
+    sed -i '1s|^#!python|#!%{python24}|' $file
 done
 
 %build
 %if 0%{?build_wheel}
-%{python27} setup.py bdist_wheel
+%{python24} setup.py bdist_wheel
 %else
-CFLAGS="$RPM_OPT_FLAGS" %{python27} setup.py build
+CFLAGS="$RPM_OPT_FLAGS" %{python24} setup.py build
 %endif
 
 %if 0%{?with_python3}
@@ -154,7 +152,7 @@ rm -rf %{buildroot}%{python3_sitelib}/setuptools/tests
 sed -i '/^setuptools\/tests\//d' %{buildroot}%{python3_record}
 %endif
 
-install -p -m 0644 %{SOURCE1} %{SOURCE2} %{py3dir}
+#install -p -m 0644 %{SOURCE1} %{SOURCE2} %{py3dir}
 find %{buildroot}%{python3_sitelib} -name '*.exe' | xargs rm -f
 chmod +x %{buildroot}%{python3_sitelib}/setuptools/command/easy_install.py
 popd
@@ -163,7 +161,7 @@ popd
 %if 0%{?build_wheel}
 pip2 install -I dist/%{python2_wheelname} --root %{buildroot} --strip-file-prefix %{buildroot}
 %else
-%{python27} setup.py install --skip-build --root %{buildroot}
+%{python24} setup.py install --skip-build --root %{buildroot}
 %endif
 
 rm -rf %{buildroot}%{python_sitelib}/setuptools/tests
@@ -171,12 +169,12 @@ rm -rf %{buildroot}%{python_sitelib}/setuptools/tests
 sed -i '/^setuptools\/tests\//d' %{buildroot}%{python2_record}
 %endif
 
-install -p -m 0644 %{SOURCE1} %{SOURCE2} .
+#install -p -m 0644 %{SOURCE1} %{SOURCE2} .
 find %{buildroot}%{python_sitelib} -name '*.exe' | xargs rm -f
 chmod +x %{buildroot}%{python_sitelib}/setuptools/command/easy_install.py
 
 %check
-%{python27} setup.py test
+%{python24} setup.py test
 
 %if 0%{?with_python3}
 pushd %{py3dir}
@@ -190,7 +188,7 @@ rm -rf %{buildroot}
 
 %files
 %defattr(-,root,root,-)
-%doc *.txt docs
+#%doc *.txt docs
 %{python_sitelib}/*
 %{bindir}/easy_install
 %{bindir}/easy_install-2.*
@@ -198,7 +196,7 @@ rm -rf %{buildroot}
 %if 0%{?with_python3}
 %files -n python3-setuptools
 %defattr(-,root,root,-)
-%doc psfl.txt zpl.txt docs
+#%doc psfl.txt zpl.txt docs
 %{python3_sitelib}/*
 %{bindir}/easy_install-3.*
 %endif # with_python3
