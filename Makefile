@@ -1,6 +1,4 @@
 build_python27:
-	mv Dockerfile.27 Dockerfile
-	docker build -t jfroche/python27-opt-centos .
+	docker build -t jfroche/python27-opt-centos -f Dockerfile.27 .
 build_python24:
-	mv Dockerfile.24 Dockerfile
-	docker build -t jfroche/python24-opt-centos .
+	docker build -t jfroche/python24-opt-centos -f Dockerfile.24 .
